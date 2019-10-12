@@ -1,5 +1,5 @@
-﻿/*************************************************************************************************
-  LaCrosse_TX23.h - Library for reading LaCrosse TX23 anemometer data.
+/*************************************************************************************************
+  LaCrosse_TX23_2.h - Library for reading LaCrosse TX23 anemometer data.
   
   LaCrosse TX23 is a wind speed and direction sensor. It uses 3 wires for communication and power:
   Pin1	Brown(Black)	DATA
@@ -22,18 +22,18 @@
   BSD license, all text above must be included in any redistribution
 *************************************************************************************************/
 
-#ifndef LaCrosse_TX23_h
-#define LaCrosse_TX23_h
+#ifndef LaCrosse_TX23_2_h
+#define LaCrosse_TX23_2_h
 
 #include "Arduino.h"
 
-class LaCrosse_TX23
+class LaCrosse_TX23_2
 {
 	public:
 		//init pin number with DATA wire connected
-		LaCrosse_TX23(int pin);
+		LaCrosse_TX23_2(int pin);
 		//reads sensor data, returns true if success
-		bool read(float &speed, int &direction);
+		bool read(float &speed,float &gust, int &direction);
 	private:
 		int _pin;
 		static void pullBits(void *dst, bool *src, int count);
