@@ -1,4 +1,4 @@
-﻿/*************************************************************************************************
+/*************************************************************************************************
   LaCrosse_TX23.h - Library for reading LaCrosse TX23 anemometer data.
   
   LaCrosse TX23 is a wind speed and direction sensor. It uses 3 wires for communication and power:
@@ -22,15 +22,15 @@
   BSD license, all text above must be included in any redistribution
 *************************************************************************************************/
 
-#include <LaCrosse_TX23.h>
+#include <LaCrosse_TX23_2.h>
 
-LaCrosse_TX23::LaCrosse_TX23(int pin)
+LaCrosse_TX23_2::LaCrosse_TX23_2(int pin)
 {
 pinMode(pin, INPUT);
 _pin = pin;
 }
 
-void LaCrosse_TX23::pullBits(void *dst, bool *src, int count)
+void LaCrosse_TX23_2::pullBits(void *dst, bool *src, int count)
 {
 	uint8_t * d = (uint8_t*) dst;
 	for (int i=0; i<count; i++)
@@ -39,9 +39,10 @@ void LaCrosse_TX23::pullBits(void *dst, bool *src, int count)
 	}	
 }
 
-bool LaCrosse_TX23::read(float &speed, int &direction)
+bool LaCrosse_TX23_2::read(float &speed,float &gust, int &direction)
 {
 	speed = 0;
+	gust=0;
 	direction = 0;
 
 	digitalWrite(_pin,LOW);
@@ -51,10 +52,11 @@ bool LaCrosse_TX23::read(float &speed, int &direction)
 	pulseIn(_pin,LOW);
 
 	unsigned bitLen = 1200;
-
 	bool data[50];
 	bool lastState = 1;
 	unsigned long start = micros();
+	
+
 	for(unsigned long t = 0; t<50000; t = micros()-start)
 	{
 		bool state = digitalRead(_pin);
@@ -70,10 +72,36 @@ bool LaCrosse_TX23::read(float &speed, int &direction)
 			lastState = state;
 		}
 	}
+	
+	unsigned bitLen2 = 1200;
+	bool data2[50];
+	bool lastState2 = 1;
+	delay(20);
+
+	unsigned long start2 = micros();
+	
+	for(unsigned long t2 = 0; t2<50000; t2 = micros()-start2)
+	{
+		bool state2 = digitalRead(_pin);
+		unsigned bitNum2 = t2/bitLen2;
+		if(t2%bitLen2>bitLen2/2) data2[bitNum2] = state2;
+		if(state2!=lastState2)
+		{
+			unsigned delta2 = t2%bitLen2;
+			if(delta2<100)
+				start2 -= delta2;
+			else if(delta2>900)
+				start2 += delta2;
+			lastState2 = state2;
+		}
+	}
 
 	uint8_t ctr = 0; pullBits(&ctr,data+0,5);
 	uint8_t dir = 0; pullBits(&dir,data+5,4);
 	uint16_t spd = 0; pullBits(&spd,data+9,12);
+
+	uint16_t spd_gust = 0; pullBits(&spd_gust,data2+8,11);
+
 	uint8_t sum = 0; pullBits(&sum,data+21,4);
 	uint8_t ndir = 0; pullBits(&ndir,data+25,4);
 	ndir ^= 0x0f;
@@ -87,6 +115,7 @@ bool LaCrosse_TX23::read(float &speed, int &direction)
 	if(spd!=nspd || dir!=ndir) return false;
 
 	speed = spd/10.0;
+	gust = spd_gust/10.0;
 	direction = dir;
 
 	return true;
